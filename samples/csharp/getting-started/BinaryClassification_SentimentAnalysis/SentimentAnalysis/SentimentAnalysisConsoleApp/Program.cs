@@ -41,6 +41,12 @@ namespace SentimentAnalysisConsoleApp
 
         private static ITransformer BuildTrainEvaluateAndSaveModel(MLContext mlContext)
         {
+            //STEP 0: Check whether model already exists
+            if (File.Exists(ModelPath))
+            {
+                return null;
+            }
+            
             // STEP 1: Common data loading configuration
             IDataView dataView = mlContext.Data.LoadFromTextFile<SentimentIssue>(DataPath, hasHeader: true);
 
@@ -81,7 +87,7 @@ namespace SentimentAnalysisConsoleApp
 
             // STEP 6: Save/persist the trained model to a .ZIP file
             mlContext.Model.Save(trainedModel, trainingData.Schema, ModelPath);
-
+            
             Console.WriteLine("The model is saved to {0}", ModelPath);
 
             return trainedModel;
@@ -89,20 +95,27 @@ namespace SentimentAnalysisConsoleApp
 
         // (OPTIONAL) Try/test a single prediction by loding the model from the file, first.
         private static void TestSinglePrediction(MLContext mlContext)
-        {         
-            SentimentIssue sampleStatement = new SentimentIssue { Text = "This is a very rude movie" };
+        {
+            do
+            {
+                Console.WriteLine("Input test text");
+                string inputText = Console.ReadLine();
 
-            ITransformer trainedModel = mlContext.Model.Load(ModelPath, out var modelInputSchema);                      
+                SentimentIssue sampleStatement = new SentimentIssue { Text = inputText };
 
-            // Create prediction engine related to the loaded trained model
-            var predEngine= mlContext.Model.CreatePredictionEngine<SentimentIssue, SentimentPrediction>(trainedModel);
+                ITransformer trainedModel = mlContext.Model.Load(ModelPath, out var modelInputSchema);
 
-            //Score
-            var resultprediction = predEngine.Predict(sampleStatement);
+                // Create prediction engine related to the loaded trained model
+                var predEngine = mlContext.Model.CreatePredictionEngine<SentimentIssue, SentimentPrediction>(trainedModel);
 
-            Console.WriteLine($"=============== Single Prediction  ===============");
-            Console.WriteLine($"Text: {sampleStatement.Text} | Prediction: {(Convert.ToBoolean(resultprediction.Prediction) ? "Toxic" : "Non Toxic")} sentiment | Probability of being toxic: {resultprediction.Probability} ");
-            Console.WriteLine($"==================================================");
+                //Score
+                var resultprediction = predEngine.Predict(sampleStatement);
+
+                Console.WriteLine($"=============== Single Prediction  ===============");
+                Console.WriteLine($"Text: {sampleStatement.Text} | Prediction: {(Convert.ToBoolean(resultprediction.Prediction) ? "Toxic" : "Non Toxic")} sentiment | Probability of being toxic: {resultprediction.Probability} ");
+                Console.WriteLine($"==================================================");
+            } while (true);
+            
         }
         
         public static string GetAbsolutePath(string relativePath)
